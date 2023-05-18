@@ -71,6 +71,7 @@
     "queue": "cpp",
     "ratio": "cpp",
     "sstream": "cpp",
-    "__availability": "cpp"
+    "__availability": "cpp",
+    "fstream": "cpp"
   }
 }

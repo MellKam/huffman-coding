@@ -1,13 +1,5 @@
 #include "huffman.hpp"
 
-#include <iostream>
-#include <string>
-#include <queue>
-#include <unordered_map>
-#include <memory>
-#include <sstream>
-#include <utility>
-
 namespace Huffman
 {
   bool TreeNode::Compare::operator()(
@@ -44,7 +36,8 @@ namespace Huffman
       auto right = queue.top();
       queue.pop();
 
-      auto newNode = std::make_shared<TreeNode>('$', left->frequency + right->frequency);
+      auto newNode = std::make_shared<TreeNode>();
+      newNode->frequency = left->frequency + right->frequency;
       newNode->left = left;
       newNode->right = right;
 
@@ -74,22 +67,6 @@ namespace Huffman
     build(node->left, code + "0");
     build(node->right, code + "1");
   }
-
-  EncodingMap::EncodingMap(const std::string &str_map)
-  {
-    std::istringstream iss(str_map);
-    std::string line;
-
-    while (std::getline(iss, line))
-    {
-      if (!line.empty())
-      {
-        char symbol = line[0];
-        std::string code = line.substr(2);
-        map[symbol] = code;
-      }
-    }
-  };
 
   const std::string &EncodingMap::operator[](char symbol)
   {
@@ -122,5 +99,88 @@ namespace Huffman
     }
 
     return std::make_pair(encodedText, map);
+  }
+
+  std::string decode(const std::string &data, const std::string &str_map)
+  {
+    std::unordered_map<std::string, char> map;
+
+    std::istringstream iss(str_map);
+    std::string line;
+
+    while (std::getline(iss, line))
+    {
+      if (!line.empty())
+      {
+        char symbol = line[0];
+        std::string code = line.substr(2);
+        map[code] = symbol;
+      }
+    }
+
+    std::string decodedResult;
+    std::string currCode;
+
+    for (char c : data)
+    {
+      currCode += c;
+      if (map[currCode])
+      {
+        decodedResult += map[currCode];
+        currCode.clear();
+      }
+    }
+
+    return decodedResult;
+  }
+
+  void writeBitsToFile(const std::string &filename, const std::string &bits)
+  {
+    std::ofstream outputFile(filename, std::ios::binary);
+
+    if (!outputFile.is_open())
+    {
+      throw std::runtime_error("Failed to open the file " + filename);
+    }
+
+    std::size_t numBytes = bits.length() / 8;
+    if (bits.length() % 8 != 0)
+    {
+      numBytes++;
+    }
+
+    outputFile.write(reinterpret_cast<const char *>(&numBytes), sizeof(numBytes));
+
+    for (std::size_t i = 0; i < bits.length(); i += 8)
+    {
+      std::bitset<8> byte(bits.substr(i, 8));
+      outputFile.write(reinterpret_cast<const char *>(&byte), 1);
+    }
+
+    outputFile.close();
+  };
+
+  std::string readBitsFromFile(const std::string &filename)
+  {
+    std::ifstream inputFile(filename, std::ios::binary);
+
+    if (!inputFile.is_open())
+    {
+      throw std::runtime_error("Failed to open the file " + filename);
+    }
+
+    std::size_t numBytes;
+    inputFile.read(reinterpret_cast<char *>(&numBytes), sizeof(numBytes));
+
+    std::string bits;
+    for (std::size_t i = 0; i < numBytes; ++i)
+    {
+      std::bitset<8> byte;
+      inputFile.read(reinterpret_cast<char *>(&byte), 1);
+      bits += byte.to_string();
+    }
+
+    inputFile.close();
+    return bits;
   }
 }

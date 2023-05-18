@@ -5,6 +5,9 @@
 #include <queue>
 #include <unordered_map>
 #include <memory>
+#include <sstream>
+#include <fstream>
+#include <bitset>
 #include <utility>
 
 namespace Huffman
@@ -16,7 +19,7 @@ namespace Huffman
     std::shared_ptr<TreeNode> left;
     std::shared_ptr<TreeNode> right;
 
-    TreeNode(char symbol, unsigned frequency);
+    TreeNode(char symbol = '$', unsigned frequency = 0);
 
     struct Compare
     {
@@ -24,7 +27,6 @@ namespace Huffman
     };
 
     static std::shared_ptr<TreeNode> from(const std::string &text);
-    // static std::shared_ptr<TreeNode> from(const EncodingMap &map);
   };
 
   class EncodingMap
@@ -36,7 +38,6 @@ namespace Huffman
 
   public:
     EncodingMap(std::shared_ptr<TreeNode> root);
-    EncodingMap(const std::string &str_map);
 
     const std::string &operator[](char symbol);
 
@@ -46,4 +47,10 @@ namespace Huffman
   };
 
   std::pair<std::string, EncodingMap> encode(const std::string &text);
+
+  std::string decode(const std::string &data, const std::string &str_map);
+
+  void writeBitsToFile(const std::string &filename, const std::string &bits);
+
+  std::string readBitsFromFile(const std::string &filename);
 }
