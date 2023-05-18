@@ -32,16 +32,17 @@ namespace Huffman
   private:
     std::unordered_map<char, std::string> map;
 
-    void build(std::shared_ptr<TreeNode> node, const std::string &code);
+    void build(std::shared_ptr<TreeNode> node, const std::string &code = "");
 
   public:
-    EncodingMap(const std::string &text);
+    EncodingMap(std::shared_ptr<TreeNode> root);
+    EncodingMap(const std::string &str_map);
 
     const std::string &operator[](char symbol);
 
-    friend std::ostream &operator<<(std::ostream &os, const EncodingMap &map);
+    const std::unordered_map<char, std::string> &getMap() const;
 
-    static EncodingMap from(const std::string &str_map);
+    friend std::ostream &operator<<(std::ostream &os, const EncodingMap &map);
   };
 
   std::pair<std::string, EncodingMap> encode(const std::string &text);

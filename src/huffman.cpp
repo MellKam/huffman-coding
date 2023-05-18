@@ -5,6 +5,7 @@
 #include <queue>
 #include <unordered_map>
 #include <memory>
+#include <sstream>
 #include <utility>
 
 namespace Huffman
@@ -53,8 +54,13 @@ namespace Huffman
     return queue.top();
   }
 
+  EncodingMap::EncodingMap(std::shared_ptr<TreeNode> root)
+  {
+    build(root);
+  }
+
   // recursive method
-  void EncodingMap::build(std::shared_ptr<TreeNode> node, const std::string &code = "")
+  void EncodingMap::build(std::shared_ptr<TreeNode> node, const std::string &code)
   {
     if (node.get() == nullptr)
       return;
@@ -69,14 +75,30 @@ namespace Huffman
     build(node->right, code + "1");
   }
 
-  EncodingMap::EncodingMap(const std::string &text)
+  EncodingMap::EncodingMap(const std::string &str_map)
   {
-    build(TreeNode::from(text));
-  }
+    std::istringstream iss(str_map);
+    std::string line;
+
+    while (std::getline(iss, line))
+    {
+      if (!line.empty())
+      {
+        char symbol = line[0];
+        std::string code = line.substr(2);
+        map[symbol] = code;
+      }
+    }
+  };
 
   const std::string &EncodingMap::operator[](char symbol)
   {
     return map[symbol];
+  }
+
+  const std::unordered_map<char, std::string> &EncodingMap::getMap() const
+  {
+    return map;
   }
 
   std::ostream &operator<<(std::ostream &os, const EncodingMap &map)
@@ -90,7 +112,8 @@ namespace Huffman
 
   std::pair<std::string, EncodingMap> encode(const std::string &text)
   {
-    EncodingMap map = EncodingMap(text);
+    std::shared_ptr<TreeNode> root = TreeNode::from(text);
+    EncodingMap map(root);
 
     std::string encodedText;
     for (char c : text)
