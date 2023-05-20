@@ -3,13 +3,13 @@ mod huffman;
 use huffman::*;
 
 fn main() {
-	let str = "hello world";
+	let input = "Привет мир";
 
-	let frequency_map = get_chars_frequency(str);
+	let (compressed, coding_map) = compress(input);
 
-	let tree_root = Box::<TreeNode>::from(&frequency_map);
+	println!("{compressed} {coding_map:#?}");
 
-	let coding_map = CodingMap::from_tree(&tree_root, frequency_map.len());
+	let output = uncompress(compressed, &coding_map).unwrap();
 
-	println!("{:#?}", coding_map);
+	println!("{output}");
 }

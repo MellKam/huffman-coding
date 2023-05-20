@@ -1,10 +1,11 @@
 use std::cmp::Ordering;
 use std::collections::{BinaryHeap, HashMap};
+use std::error::Error;
 
-pub fn get_chars_frequency(string: &str) -> HashMap<char, u32> {
+fn get_chars_frequency(text: impl AsRef<str>) -> HashMap<char, u32> {
 	let mut frequency_table: HashMap<char, u32> = HashMap::new();
 
-	for char in string.chars() {
+	for char in text.as_ref().chars() {
 		frequency_table
 			.entry(char)
 			.and_modify(|v| *v += 1)
@@ -17,12 +18,12 @@ pub fn get_chars_frequency(string: &str) -> HashMap<char, u32> {
 const BRANCH_SYMBOL: char = '$';
 
 #[derive(Debug, Eq, PartialEq)]
-pub struct TreeNode {
-	pub symbol: char,
-	pub frequency: u32,
+struct TreeNode {
+	symbol: char,
+	frequency: u32,
 
-	pub left: Option<Box<TreeNode>>,
-	pub right: Option<Box<TreeNode>>,
+	left: Option<Box<TreeNode>>,
+	right: Option<Box<TreeNode>>,
 }
 
 impl TreeNode {
@@ -30,6 +31,17 @@ impl TreeNode {
 		TreeNode {
 			symbol,
 			frequency,
+			left: None,
+			right: None,
+		}
+	}
+}
+
+impl Default for TreeNode {
+	fn default() -> Self {
+		TreeNode {
+			symbol: BRANCH_SYMBOL,
+			frequency: 0,
 			left: None,
 			right: None,
 		}
@@ -77,33 +89,139 @@ impl From<&HashMap<char, u32>> for Box<TreeNode> {
 	}
 }
 
-#[derive(Debug)]
-pub struct CodingMap {
-	map: HashMap<char, String>,
+impl From<&HashMap<char, String>> for Box<TreeNode> {
+	fn from(coding_map: &HashMap<char, String>) -> Self {
+		let mut tree_root = Box::new(TreeNode::default());
+		let mut curr_node = &mut tree_root;
+
+		for (symbol, code) in coding_map.iter() {
+			for ch in code.chars() {
+				match ch {
+					'0' => {
+						curr_node = curr_node.left.get_or_insert(Box::new(TreeNode::default()));
+					}
+					'1' => {
+						curr_node = curr_node.right.get_or_insert(Box::new(TreeNode::default()));
+					}
+					_ => panic!("Invalid binary char"),
+				}
+			}
+			curr_node.symbol = *symbol;
+			curr_node = &mut tree_root;
+		}
+
+		return tree_root;
+	}
 }
 
-impl CodingMap {
-	fn build(self: &mut Self, node: &Box<TreeNode>, code: String) {
+fn coding_map_from_tree(root: &Box<TreeNode>, chars_count: usize) -> HashMap<char, String> {
+	let mut map = HashMap::with_capacity(chars_count);
+
+	fn build(map: &mut HashMap<char, String>, node: &Box<TreeNode>, code: String) {
 		if node.right.is_none() && node.left.is_none() {
-			self.map.insert(node.symbol, code);
+			map.insert(node.symbol, code);
 			return;
 		}
 
 		if let Some(l) = &node.left {
-			self.build(l, code.clone() + "0");
+			build(map, l, code.clone() + "0");
 		}
 		if let Some(r) = &node.right {
-			self.build(r, code.clone() + "1");
+			build(map, r, code.clone() + "1");
 		}
 	}
 
-	pub fn from_tree(root: &Box<TreeNode>, capacity: usize) -> Self {
-		let mut map = Self {
-			map: HashMap::with_capacity(capacity),
+	build(&mut map, root, String::from(""));
+
+	map
+}
+
+pub fn compress(text: impl AsRef<str>) -> (String, HashMap<char, String>) {
+	let frequency_map = get_chars_frequency(text.as_ref());
+
+	let tree_root = Box::<TreeNode>::from(&frequency_map);
+
+	let coding_map = coding_map_from_tree(&tree_root, frequency_map.len());
+
+	let compressed = text
+		.as_ref()
+		.chars()
+		.map(|c| coding_map[&c].clone())
+		.collect::<String>();
+
+	return (compressed, coding_map);
+}
+
+pub fn uncompress(
+	bits: impl AsRef<str>,
+	coding_map: &HashMap<char, String>,
+) -> Result<String, Box<dyn Error>> {
+	let tree_root = Box::<TreeNode>::from(coding_map);
+
+	let mut curr_node = &tree_root;
+	let mut result = String::new();
+
+	for bit in bits.as_ref().chars() {
+		match bit {
+			'0' => {
+				curr_node = curr_node
+					.left
+					.as_ref()
+					.ok_or::<Box<dyn Error>>("Invalid tree".into())?;
+
+				if curr_node.symbol != BRANCH_SYMBOL {
+					result += &curr_node.symbol.to_string();
+					curr_node = &tree_root;
+				}
+			}
+			'1' => {
+				curr_node = curr_node
+					.right
+					.as_ref()
+					.ok_or::<Box<dyn Error>>("Invalid tree".into())?;
+
+				if curr_node.symbol != BRANCH_SYMBOL {
+					result += &curr_node.symbol.to_string();
+					curr_node = &tree_root;
+				}
+			}
+			_ => return Err("Invalid bit".into()),
 		};
-
-		map.build(root, "".to_string());
-
-		return map;
 	}
+
+	return Ok(result);
+}
+
+// ---------- Parsers -----------
+
+pub fn parse_string_to_bytes(input: &str) -> Result<Vec<u8>, Box<dyn Error>> {
+	if input.len() == 0 {
+		return Ok(Vec::new());
+	}
+
+	let num_bytes = (input.len() as f32 / 8 as f32).ceil() as usize;
+	let mut bytes = vec![0; num_bytes];
+
+	for (i, bit) in input.chars().enumerate() {
+		if bit == '1' {
+			bytes[i / 8] |= 1 << (7 - (i % 8));
+		} else if bit != '0' {
+			return Err("Invalid bit".into());
+		}
+	}
+
+	Ok(bytes)
+}
+
+pub fn parse_bytes_to_string(bytes: &[u8]) -> String {
+	let mut result = String::with_capacity(bytes.len() * 8);
+
+	for byte in bytes {
+		for i in (0..8).rev() {
+			let bit = (byte >> i) & 1;
+			result += &bit.to_string();
+		}
+	}
+
+	result
 }

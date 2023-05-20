@@ -1,0 +1,42 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+      {
+          "type": "lldb",
+          "request": "launch",
+          "name": "Debug executable 'huffman-coding'",
+          "cargo": {
+              "args": [
+                  "build",
+                  "--bin=huffman-coding",
+                  "--package=huffman-coding"
+              ],
+              "filter": {
+                  "name": "huffman-coding",
+                  "kind": "bin"
+              }
+          },
+          "args": [],
+          "cwd": "${workspaceFolder}"
+      },
+      {
+          "type": "lldb",
+          "request": "launch",
+          "name": "Debug unit tests in executable 'huffman-coding'",
+          "cargo": {
+              "args": [
+                  "test",
+                  "--no-run",
+                  "--bin=huffman-coding",
+                  "--package=huffman-coding"
+              ],
+              "filter": {
+                  "name": "huffman-coding",
+                  "kind": "bin"
+              }
+          },
+          "args": [],
+          "cwd": "${workspaceFolder}"
+      }
+  ]
+}
