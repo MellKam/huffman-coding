@@ -1,15 +1,20 @@
 mod huffman;
 
-use huffman::*;
+use std::time::Instant;
 
 fn main() {
-	let input = "Привет мир";
+	let data = "Привет мир".repeat(1000000);
 
-	let (compressed, coding_map) = compress(input);
+	let now = Instant::now();
 
-	println!("{compressed} {coding_map:#?}");
+	println!("{}", data.len());
 
-	let output = uncompress(compressed, &coding_map).unwrap();
+	for _ in 0..1 {
+		let (compressed, coding_map) = huffman::compress(&data);
+		println!("{}", compressed.len());
+		let _ = huffman::uncompress(&compressed, &coding_map);
+	}
 
-	println!("{output}");
+	let elapsed = now.elapsed();
+	println!("Huffman new: {:.2?}", elapsed);
 }
